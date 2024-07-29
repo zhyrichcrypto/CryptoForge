@@ -1,0 +1,57 @@
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class CryptoForge:
+    def __init__(self):
+        self.api_url = 'https://api.coingecko.com/api/v3'
+
+    def get_current_price(self, ids: str, vs_currency: str = 'usd') -> dict:
+        url = f"{self.api_url}/simple/price"
+        params = {
+            'ids': ids,
+            'vs_currencies': vs_currency
+        }
+        response = requests.get(url, params=params)
+        return response.json()
+
+    def get_historical_data(self, ids: str, vs_currency: str = 'usd', days: int = 30) -> pd.DataFrame:
+        url = f"{self.api_url}/coins/{ids}/market_chart"
+        params = {
+            'vs_currency': vs_currency,
+            'days': days
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+        prices = data['prices']
+        df = pd.DataFrame(prices, columns=['timestamp', 'price'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        return df
+
+    def plot_price_trends(self, ids: str, vs_currency: str = 'usd', days: int = 30):
+        df = self.get_historical_data(ids, vs_currency, days)
+        if df.empty:
+            print("No historical data found.")
+            return
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(df['timestamp'], df['price'], marker='o', linestyle='-')
+        plt.title(f'{ids.capitalize()} Price Trend')
+        plt.xlabel('Date')
+        plt.ylabel(f'Price ({vs_currency.upper()})')
+        plt.grid(True)
+        plt.show()
+
+# Example Usage
+if __name__ == "__main__":
+    crypto_forge = CryptoForge()
+
+    # Fetch and Display Current Price
+    crypto_ids = 'bitcoin,ethereum'  # Comma-separated list of cryptocurrency IDs
+    current_prices = crypto_forge.get_current_price(ids=crypto_ids)
+    print("Current Prices:")
+    print(current_prices)
+
+    # Fetch and Display Historical Price Data and Plot Trend
+    crypto_id = 'bitcoin'  # Cryptocurrency ID
+    crypto_forge.plot_price_trends(ids=crypto_id, days=30)
